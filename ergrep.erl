@@ -4,7 +4,7 @@
 start(Pattern, Dir) ->
   register(ergrep, self()),
   spawn(fun() -> mapF(Pattern, Dir ++ "/*") end),
-  reduceF(0).
+  reduceF(0, []).
 
 mapF(Pattern, Root) ->
     ergrep ! {spawn, self()},
@@ -23,7 +23,9 @@ process_file(Name, Pattern) ->
     Result = lists:map(fun(Line) -> process_line(re:run(Line, RegExp), Line, Name) end, Splited).
 
 process_line(nomatch, _, _) -> true;
-process_line(_, Line, File) -> io:format("~s:~s~n", [File, binary_to_list(Line)]).
+process_line(_, Line, File) ->
+  ergrep ! {emit, self(), {File, Line}},
+  io:format("~s:~s~n", [File, binary_to_list(Line)]).
 
 
 process_dir(Name, Pattern) ->
@@ -31,14 +33,15 @@ process_dir(Name, Pattern) ->
     spawn(fun() -> mapF(Pattern, Name ++ "/*") end).
 
 
-reduceF(ProcCount) ->
+reduceF(ProcCount, Results) ->
 %   io:format("~p~n",[ProcCount]), % debug
     receive
-        {spawn, Ref } -> reduceF(ProcCount + 1);
-        {die, Ref } -> Count = ProcCount - 1,
+        {emit, Ref, Value } -> reduceF(ProcCount, [Value | Results]);
+        {spawn, Ref }       -> reduceF(ProcCount + 1, Results);
+        {die, Ref }         -> Count = ProcCount - 1,
           if
-            Count =:= 0 -> true;
-            true  -> reduceF(Count)
+            Count =:= 0 -> Results;
+            true  -> reduceF(Count, Results)
           end
         after
         1000 -> true % wait for a sec
