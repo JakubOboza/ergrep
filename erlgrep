@@ -1,0 +1,12 @@
+#!/usr/bin/env escript
+
+main([Pattern, Dir]) ->
+%  io:format("~p ~p~n", [Pattern, Dir]), % debug
+  ergrep:start(Pattern, Dir);
+
+main(_) ->
+    usage().
+
+usage() ->
+    io:format("usage: pattern dir~n"),
+    halt(1).
