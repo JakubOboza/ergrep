@@ -17,7 +17,14 @@ process_item(true, Item, Pattern) -> process_dir(Item, Pattern);
 process_item(false, Item, Pattern) -> process_file(Item, Pattern).
 
 process_file(Name, Pattern) ->
-    io:format("File ~p~n", [Name]).
+    {ok, Content} = file:read_file(Name),
+    {ok, RegExp} = re:compile(Pattern),
+    Splited = re:split(Content, "\n"),
+    Result = lists:map(fun(Line) -> process_line(re:run(Line, RegExp), Line, Name) end, Splited).
+
+process_line(nomatch, _, _) -> true;
+process_line(_, Line, File) -> io:format("~p: ~p~n", [File, Line]).
+
 
 process_dir(Name, Pattern) ->
 %   io:format("Dir ~p~n", [Name]), % debug
@@ -31,7 +38,7 @@ reduceF(ProcCount) ->
         {die, Ref } -> Count = ProcCount - 1,
           if
             Count =:= 0 -> true;
-            true  -> reduceF(ProcCount - 1)
+            true  -> reduceF(Count)
           end
         after
         1000 -> true % wait for a sec
