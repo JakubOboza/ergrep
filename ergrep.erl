@@ -23,7 +23,7 @@ process_file(Name, Pattern) ->
     Result = lists:map(fun(Line) -> process_line(re:run(Line, RegExp), Line, Name) end, Splited).
 
 process_line(nomatch, _, _) -> true;
-process_line(_, Line, File) -> io:format("~p: ~p~n", [File, Line]).
+process_line(_, Line, File) -> io:format("~s: ~s~n", [File, binary_to_list(Line)]).
 
 
 process_dir(Name, Pattern) ->
